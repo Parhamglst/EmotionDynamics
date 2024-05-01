@@ -2,6 +2,7 @@ import numpy as np
 from numpy.lib.npyio import save
 import pandas as pd
 import nltk
+from nltk.stem import WordNetLemmatizer
 import os, re, sys, json, csv, string, os, math
 import scipy 
 from tqdm import tqdm
@@ -31,12 +32,14 @@ parser.add_argument('--pre_process', type=str, help='Apply pre-processing to inp
 parser.add_argument('--post_process', type=str, help='Apply post-processing to outputs [True, False]', default='True', required=False)
 
 tqdm.pandas()
-
+wnl = WordNetLemmatizer()
 # TOKENIZER = nltk.word_tokenize
-def split_tokens(s):
-    return s.split(" ")
 
-TOKENIZER = split_tokens
+def tokenizer(s):
+    tokens = nltk.tokenize.word_tokenize(s)
+    return [wnl.lemmatize(t) for t in tokens]
+    
+TOKENIZER = tokenizer
 
 def default_hb(data, config, edim):
     data[edim+'_emo_std'] = data.groupby(config.idCol)[edim].transform(np.nanstd)
@@ -131,9 +134,10 @@ def ued(config, df):
     df.sort_values(by=[config.idCol, config.timeCol], inplace=True)
     tdf = get_tokenized_df(df, textCol)
 
-    stopdf = read_stopwords(config.stopword_path)
+    if config.stopwords:
+        stopdf = read_stopwords(config.stopword_path)
 
-    tdf = tdf[~tdf['word'].isin(stopdf['word'])]
+        tdf = tdf[~tdf['word'].isin(stopdf['word'])]
 
     tdf['row_num'] = [i for i in range(len(tdf))]
 
